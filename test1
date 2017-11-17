@@ -1,0 +1,171 @@
+/* gcc -o tree bst-solution.c --std=c99 */
+#include <stdio.h>
+#include <stdlib.h>
+#include <malloc.h>
+#include <math.h>
+
+struct node {
+    struct node *left;
+    struct node *right;
+    int val;
+};
+
+struct node *new_node(int val)
+{
+    struct node *new_node = (struct node *)malloc(sizeof(struct node));
+
+    new_node->left = NULL;
+    new_node->right = NULL;
+    new_node->val = val;
+
+    return new_node;
+}
+
+struct node *insert_rec(struct node *node,
+                        int val)
+{
+    /* Termination condition */
+    if ( node == NULL )
+        return new_node(val);
+
+    /* Go through the tree and look for the right position for the new node */
+    if ( val <= node->val )
+        node->left = insert_rec(node->left, val);
+    else
+        node->right = insert_rec(node->right, val);
+
+    return node;
+}
+
+struct node *make_random_tree(int num_nodes)
+{
+    int val;
+    struct node *root = NULL;
+
+    val = rand() % 100;
+    root = insert_rec(NULL, val);
+
+    for (int i=0; i<(num_nodes-1); i++)
+    {
+        val = rand() % 100;
+        insert_rec(root, val);
+    }
+
+    return root;
+}
+
+void iterate_in_order(struct node *node,
+                      void (*f)(struct node *n))
+{
+    if ( node == NULL )
+        return;
+
+    iterate_in_order(node->left, f);
+    f(node);
+    iterate_in_order(node->right, f);
+
+    return;
+}
+
+void iterate_pre_order(struct node *node,
+                      void (*f)(struct node *n))
+{
+    if ( node == NULL )
+        return;
+
+    f(node);
+    iterate_pre_order(node->left, f);
+    iterate_pre_order(node->right, f);
+
+    return;
+}
+
+void iterate_post_order(struct node *node,
+                        void (*f)(struct node *n))
+{
+    if ( node == NULL )
+        return;
+
+    iterate_post_order(node->left, f);
+    iterate_post_order(node->right, f);
+    f(node);
+
+    return;
+}
+
+void print_val(struct node *node)
+{
+    printf("node->val = %d\n", node->val);
+}
+
+void plusone(struct node *node)
+{
+    node->val += 1;
+}
+
+/* N.B.: -x invertiert die BST-Invariante
+ * (rechter Teilbaum jetzt groesser als linker) */
+void negate(struct node *node)
+{
+    node->val *= -1;
+}
+
+/* N.B.: Nicht-monotone Funktionen zerstoeren
+ * die Struktur des Suchbaumes */
+void magic(struct node *node)
+{
+    node->val = (100 - node->val) * node->val - 900;
+}
+
+void free_node(struct node *node)
+{
+    if ( node )
+    {
+        printf("free node->val=%d\n", node->val);
+        free(node);
+    }
+}
+
+int main(int argc, char *argv[])
+{
+    struct node *root = NULL;
+
+    root = make_random_tree(5);
+
+    printf("Printing in order:\n");
+    iterate_in_order(root, print_val);
+    printf("\n");
+
+    printf("Printing in pre-order:\n");
+    iterate_pre_order(root, print_val);
+    printf("\n");
+
+    printf("Printing in post-order:\n");
+    iterate_post_order(root, print_val);
+    printf("\n");
+
+    /* Apply the manipulation functions */
+    printf("Original:\n");
+    iterate_pre_order(root, print_val);
+    printf("plusone:\n");
+    iterate_in_order(root, plusone);
+    iterate_pre_order(root, print_val);
+    printf("negate:\n");
+    iterate_in_order(root, negate);
+    iterate_pre_order(root, print_val);
+    printf("magic:\n");
+    iterate_in_order(root, magic);
+    iterate_pre_order(root, print_val);
+
+    printf("Printing in order (squared):\n");
+    iterate_in_order(root, print_val);
+    printf("\n");
+
+    /* Free each node*/
+    iterate_post_order(root, free_node);
+
+    /* Purge tree pointer (and parents pointing to it, if not topmost level) */
+	root = NULL;
+
+    return EXIT_SUCCESS;
+}
